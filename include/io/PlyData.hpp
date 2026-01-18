@@ -49,9 +49,59 @@ public:
         return elemIt->second.getPropertyRefWithName(propertyName);
     }
 
+    template <typename T>
+    const std::vector<std::vector<T>> getTypedProperties(const std::string& elementName, const std::vector<std::string>& propertyNames) const {
+        auto elemIt = elements.find(elementName);
+        if (elemIt == elements.end()) {
+            throw std::runtime_error("Element not found: " + elementName);
+        }
+
+        std::vector<std::vector<T>> result;
+        result.reserve(propertyNames.size());
+
+        for (const auto& propName : propertyNames) {
+            const auto& propValues = elemIt->second.getPropertyRefWithName(propName);
+            std::vector<T> typedValues;
+            typedValues.reserve(propValues.size());
+
+            for (const auto& val : propValues) {
+                typedValues.push_back(std::get<T>(val));
+            }
+
+            result.push_back(typedValues);
+        }
+
+        return result;
+    }
+
     void setProperty(const std::string& elementName, const std::string& propertyName, std::vector<PropertyValue>&& values) {
         elements[elementName].setName(elementName);
         elements[elementName].setProperty(propertyName, std::move(values));
+    }
+
+    template <typename T>
+    void setProperty(const std::string& elementName,
+                    const std::string& propertyName,
+                    const std::vector<T>& values) {
+
+        std::vector<PropertyValue> converted;
+        converted.reserve(values.size());
+        for (const T& val : values) {
+            converted.emplace_back(val);
+        }
+        setProperty(elementName, propertyName, std::move(converted));
+    }
+
+    template<typename T>
+    void setProperties(const std::string& elementName,
+                       const std::vector<std::string>& propertyNames,
+                       const std::vector<std::vector<T>>& values) {
+        if (propertyNames.size() != values.size()) {
+            throw std::runtime_error("Property names and values size mismatch.");
+        }
+        for (size_t i = 0; i < propertyNames.size(); ++i) {
+            setProperty(elementName, propertyNames[i], values[i]);
+        }
     }
 
     void setSchemas(std::vector<ElementSchema>&& schemasVec) {
