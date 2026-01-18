@@ -7,6 +7,11 @@
 #include <stdexcept>
 #include <spdlog/spdlog.h>
 
+enum class PlyFormat {
+    ASCII,
+    BINARY_LITTLE_ENDIAN
+};
+
 enum class PropertyStorageType {
     INT32,   // 存储为 int32_t
     FLOAT32   // 存储为 float

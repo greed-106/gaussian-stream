@@ -3,7 +3,6 @@
 #include "FileTools.hpp"
 #include "PlySchema.hpp"
 #include "PlyData.hpp"
-#include "PlyFormat.hpp"
 #include <fstream>
 #include <functional>
 #include <spdlog/spdlog.h>

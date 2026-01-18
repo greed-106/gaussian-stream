@@ -3,7 +3,6 @@
 #include "FileTools.hpp"
 #include "PlySchema.hpp"
 #include "PlyData.hpp"
-#include "PlyFormat.hpp"
 #include <functional>
 #include <tuple>
 #include <mio/mmap.hpp>
