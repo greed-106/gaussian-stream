@@ -18,6 +18,17 @@ namespace {
         RegisteredSchema::registerSchema("vertex", "x", {"float"}, PropertyStorageType::FLOAT32);
         RegisteredSchema::registerSchema("vertex", "y", {"float"}, PropertyStorageType::FLOAT32);
         RegisteredSchema::registerSchema("vertex", "z", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "f_dc_0", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "f_dc_1", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "f_dc_2", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "opacity", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "scale_0", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "scale_1", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "scale_2", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "rot_0", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "rot_1", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "rot_2", {"float"}, PropertyStorageType::FLOAT32);
+        RegisteredSchema::registerSchema("vertex", "rot_3", {"float"}, PropertyStorageType::FLOAT32);
 
         SPDLOG_INFO("config initialized");
         return 0;
