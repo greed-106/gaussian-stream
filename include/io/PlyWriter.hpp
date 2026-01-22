@@ -5,6 +5,7 @@
 #include "PlyData.hpp"
 #include <fstream>
 #include <functional>
+#include <unordered_set>
 #include <spdlog/spdlog.h>
 
 class PlyWriter {
@@ -135,6 +136,115 @@ private:
         }
     }
 
+    static void writeHeaderWithPropertyMasks(std::ofstream& file, const PlyData& plyData, PlyFormat format, const std::vector<std::string>& propertyMasks) {
+        file << "ply\n";
+        
+        switch (format) {
+            case PlyFormat::ASCII:
+                file << "format ascii 1.0\n";
+                break;
+            case PlyFormat::BINARY_LITTLE_ENDIAN:
+                file << "format binary_little_endian 1.0\n";
+                break;
+            default:
+                SPDLOG_ERROR("Unsupported PLY format for writing");
+                throw std::runtime_error("Unsupported PLY format for writing");
+        }
+
+        // 将propertyMasks转换为unordered_set以便快速查找
+        std::unordered_set<std::string> maskSet(propertyMasks.begin(), propertyMasks.end());
+
+        for (const auto& schema : plyData.schemas) {
+            // 统计有多少属性在mask中
+            int validPropertyCount = 0;
+            for (const auto& property : schema.properties) {
+                if (maskSet.find(property.propertyName) != maskSet.end()) {
+                    validPropertyCount++;
+                }
+            }
+
+            // 只有当至少有一个属性在mask中时才写入element
+            if (validPropertyCount > 0) {
+                file << "element " << schema.getNameRef() << " " << schema.getCount() << "\n";
+                for (const auto& property : schema.properties) {
+                    if (maskSet.find(property.propertyName) != maskSet.end()) {
+                        file << "property " << property.currentHeaderType << " " << property.propertyName << "\n";
+                    }
+                }
+            }
+        }
+
+        file << "end_header\n";
+    }
+
+    static void writeElementWithPropertyMasks(std::ofstream& file, const PlyData& plyData, const ElementSchema& schema, PlyFormat format, const std::vector<std::string>& propertyMasks) {
+        // 将propertyMasks转换为unordered_set以便快速查找
+        std::unordered_set<std::string> maskSet(propertyMasks.begin(), propertyMasks.end());
+
+        const auto& propertyNames = schema.getPropertyNames();
+        const auto& elementName = schema.getNameRef();
+
+        // 筛选出在mask中的属性
+        std::vector<int> validPropertyIndices;
+        std::vector<std::function<void(std::ostream&, const PropertyValue&)>> writers;
+        std::vector<const std::vector<PropertyValue>*> propertyDataRefs;
+
+        auto propertyStorageTypes = schema.getPropertyStorageTypes();
+        for (size_t i = 0; i < propertyNames.size(); ++i) {
+            if (maskSet.find(propertyNames[i]) != maskSet.end()) {
+                validPropertyIndices.push_back(i);
+                
+                // 创建对应的writer
+                switch (format) {
+                    case PlyFormat::ASCII:
+                        writers.push_back(createPropertyWriter<PlyFormat::ASCII>(propertyStorageTypes[i]));
+                        break;
+                    case PlyFormat::BINARY_LITTLE_ENDIAN:
+                        writers.push_back(createPropertyWriter<PlyFormat::BINARY_LITTLE_ENDIAN>(propertyStorageTypes[i]));
+                        break;
+                    default:
+                        SPDLOG_ERROR("Unsupported PLY format during writer building");
+                        throw std::runtime_error("Unsupported PLY format during writer building");
+                }
+
+                propertyDataRefs.push_back(&plyData.getPropertyRefWithName(elementName, propertyNames[i]));
+            }
+        }
+
+        // 如果没有有效属性，直接返回
+        if (validPropertyIndices.empty()) {
+            return;
+        }
+
+        switch (format) {
+            case PlyFormat::ASCII:
+                for (int i = 0; i < schema.getCount(); ++i) {
+                    for (size_t j = 0; j < writers.size(); ++j) {
+                        if (j > 0) file << " ";
+                        writers[j](file, (*propertyDataRefs[j])[i]);
+                    }
+                    file << "\n";
+                }
+                break;
+            case PlyFormat::BINARY_LITTLE_ENDIAN:
+                for (int i = 0; i < schema.getCount(); ++i) {
+                    for (size_t j = 0; j < writers.size(); ++j) {
+                        writers[j](file, (*propertyDataRefs[j])[i]);
+                    }
+                }
+                break;
+            default:
+                SPDLOG_ERROR("Unsupported PLY format during element writing");
+                throw std::runtime_error("Unsupported PLY format during element writing");
+        }
+    }
+
+    static void writeBodyWithPropertyMasks(std::ofstream& file, const PlyData& plyData, PlyFormat format, const std::vector<std::string>& propertyMasks) {
+        for (const auto& schema : plyData.schemas) {
+            writeElementWithPropertyMasks(file, plyData, schema, format, propertyMasks);
+        }
+    }
+
 public:
     static void writeDataToFile(const std::string& filename, const PlyData& plyData, PlyFormat format = PlyFormat::BINARY_LITTLE_ENDIAN) {
         FileTools::checkAndCreateDir(filename);
@@ -147,6 +257,21 @@ public:
 
         writeHeader(file, plyData, format);
         writeBody(file, plyData, format);
+
+        file.close();
+    }
+
+    static void writeDataToFileWithPropertyMasks(const std::string& filename, const PlyData& plyData, const std::vector<std::string>& propertyMasks, PlyFormat format = PlyFormat::BINARY_LITTLE_ENDIAN) {
+        FileTools::checkAndCreateDir(filename);
+
+        std::ofstream file(filename, std::ios::binary);
+        if (!file.is_open()) {
+            SPDLOG_ERROR("Failed to open file for writing: {}", filename);
+            throw std::runtime_error("Failed to open file for writing: " + filename);
+        }
+
+        writeHeaderWithPropertyMasks(file, plyData, format, propertyMasks);
+        writeBodyWithPropertyMasks(file, plyData, format, propertyMasks);
 
         file.close();
     }
