@@ -87,4 +87,45 @@ public:
 
         return quantizedData;
     }
+
+    template<typename OutType, typename InType, size_t BitsPerDimension>
+    static std::vector<std::vector<OutType>> dequantizePositionWithBBox(const std::vector<std::vector<InType>>& quantizedPoints, const BoundingBox3D& bbox) {
+        if (quantizedPoints.size() != 3) {
+            throw std::runtime_error("Only 3D points are supported for dequantization.");
+        }
+
+        size_t numPoints = quantizedPoints[0].size();
+
+        float minX = bbox.minX();
+        float minY = bbox.minY();
+        float minZ = bbox.minZ();
+        float maxX = bbox.maxX();
+        float maxY = bbox.maxY();
+        float maxZ = bbox.maxZ();
+
+        uint32_t levels = 1 << BitsPerDimension;
+        std::vector<std::vector<OutType>> dequantizedData(3, std::vector<OutType>(numPoints));
+
+        for (size_t i = 0; i < numPoints; ++i) {
+            OutType x = static_cast<OutType>(quantizedPoints[0][i]) / (levels - 1) * (maxX - minX) + minX;
+            OutType y = static_cast<OutType>(quantizedPoints[1][i]) / (levels - 1) * (maxY - minY) + minY;
+            OutType z = static_cast<OutType>(quantizedPoints[2][i]) / (levels - 1) * (maxZ - minZ) + minZ;
+
+            dequantizedData[0][i] = x;
+            dequantizedData[1][i] = y;
+            dequantizedData[2][i] = z;
+        }
+
+        return dequantizedData;
+    }
+
+    template<typename OutType, typename InType>
+    static std::vector<OutType> castVector(const std::vector<InType>& input) {
+        std::vector<OutType> output;
+        output.reserve(input.size());
+        for (const auto& val : input) {
+            output.emplace_back(static_cast<OutType>(val));
+        }
+        return output;
+    }
 };
