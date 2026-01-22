@@ -5,6 +5,7 @@
 #include <vector>
 #include <stdexcept>
 #include <numeric>
+#include <algorithm>
 
 // Morton编码辅助类，基于morton-nd库实现
 class MortonEncoder {
@@ -18,8 +19,9 @@ public:
 
         size_t numPoints = coordinates[0].size();
         std::vector<T> mortonIndices(numPoints);
+        std::vector<T> indices(numPoints);
 
-        std::iota(mortonIndices.begin(), mortonIndices.end(), 0);
+        std::iota(indices.begin(), indices.end(), 0);
 
         using MortonND = mortonnd::MortonNDBmi<Dimensions, T>;
         // auto [quantizedPositions, bbox] = Quantization::quantizePosition<uint32_t, float, MortonND::FieldBits>(coordinates);
@@ -31,6 +33,12 @@ public:
             mortonIndices[i] = MortonND::Encode(z, y, x);
         }
 
-        return mortonIndices;
+        std::sort(indices.begin(), indices.end(),
+            [&mortonIndices](T a, T b) {
+                return mortonIndices[a] < mortonIndices[b];
+            }
+        );
+
+        return indices;
     }
 };
