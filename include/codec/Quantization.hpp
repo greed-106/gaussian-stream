@@ -128,4 +128,14 @@ public:
         }
         return output;
     }
+
+    template<typename OutType, typename InType>
+    static std::vector<std::vector<OutType>> castVectors(const std::vector<std::vector<InType>>& input) {
+        std::vector<std::vector<OutType>> output;
+        output.reserve(input.size());
+        for (const auto& vec : input) {
+            output.emplace_back(castVector<OutType, InType>(vec));
+        }
+        return output;
+    }
 };
