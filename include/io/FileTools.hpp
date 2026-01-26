@@ -70,19 +70,20 @@ public:
         return matchedFiles;
     }
     /**
-     * @brief 将std::vector<char>中的数据保存到二进制文件中
+     * @brief 将std::vector<T>中的数据保存到二进制文件中
      * @param data 数据
      * @param filePath 文件路径
      * @throw std::runtime_error 如果打开文件失败
      */
-    static void writeToFile(const std::vector<char>& data, const std::string& filePath) {
+    template<typename T>
+    static void writeToFile(const std::vector<T>& data, const std::string& filePath) {
         checkAndCreateDir(filePath);
         std::ofstream file(filePath, std::ios::binary);
         if (!file.is_open()) {
             SPDLOG_ERROR("Failed to open file for writing: {}", filePath);
             throw std::runtime_error("Failed to open file for writing: " + filePath);
         }
-        file.write(data.data(), data.size());
+        file.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size() * sizeof(T)));
         file.close();
     }
 };
